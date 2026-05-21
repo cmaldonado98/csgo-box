@@ -49,6 +49,9 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [hasFinished, setHasFinished] = useState(false);
   const [finalTranslateX, setFinalTranslateX] = useState(0);
+  const [audioReady, setAudioReady] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
+  const isReady = audioReady && imagesReady;
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -69,8 +72,9 @@ export default function Roulette({ onFinish }: RouletteProps) {
           audioRef.current.src = url;
           audioRef.current.load();
         }
+        setAudioReady(true);
       })
-      .catch(console.error);
+      .catch(() => setAudioReady(true));
 
     // 2. Desbloquear el audio en el primer toque: iOS Safari exige que el primer
     //    play() ocurra dentro de un gesto del usuario.
@@ -123,9 +127,24 @@ export default function Roulette({ onFinish }: RouletteProps) {
           }
         }
         
+        // Precargar todas las imágenes para que no haya delay al girar
+        await Promise.all(
+          selected.map(
+            (item) =>
+              new Promise<void>((resolve) => {
+                const img = new window.Image();
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+                img.src = item.image;
+              })
+          )
+        );
+
         setItems(selected);
+        setImagesReady(true);
       } catch (error) {
         console.error("Error fetching skins:", error);
+        setImagesReady(true);
       }
     }
     
@@ -160,8 +179,18 @@ export default function Roulette({ onFinish }: RouletteProps) {
     }, 6000); // 6s exactos
   };
 
-  if (items.length === 0) {
-    return <div className="h-40 flex items-center justify-center text-zinc-500">Cargando...</div>;
+  if (!isReady) {
+    return (
+      <div className="w-full flex flex-col items-center gap-4 py-16">
+        <div className="relative w-14 h-14">
+          <div className="absolute inset-0 rounded-full border-4 border-zinc-700" />
+          <div className="absolute inset-0 rounded-full border-4 border-t-csgo-gold border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+        </div>
+        <p className="text-zinc-400 text-sm uppercase tracking-widest animate-pulse">
+          Cargando caja...
+        </p>
+      </div>
+    );
   }
 
   return (
