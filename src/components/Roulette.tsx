@@ -51,13 +51,47 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const [finalTranslateX, setFinalTranslateX] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const blobUrlRef = useRef<string | null>(null);
   
   const ITEM_WIDTH = 120; // Ancho fijo por item
   const TOTAL_ITEMS = 50;
   const WINNING_INDEX = 45; // El item 45 es el ganador
 
   useEffect(() => {
+    // 1. Pre-descargar el audio como blob URL: iOS/Android ignoran preload="auto",
+    //    con blob el archivo queda en memoria y la reproducción es instantánea.
+    fetch('/case-opening-sound.wav')
+      .then(r => r.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        blobUrlRef.current = url;
+        if (audioRef.current) {
+          audioRef.current.src = url;
+          audioRef.current.load();
+        }
+      })
+      .catch(console.error);
 
+    // 2. Desbloquear el audio en el primer toque: iOS Safari exige que el primer
+    //    play() ocurra dentro de un gesto del usuario.
+    const unlock = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+      }).catch(() => {});
+    };
+
+    document.addEventListener('touchstart', unlock, { once: true, passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', unlock);
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     async function fetchSkins() {
       try {
         const res = await fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json");
