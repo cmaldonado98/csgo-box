@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import useSound from "use-sound";
 
 interface Skin {
   id: string;
@@ -49,53 +50,18 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [hasFinished, setHasFinished] = useState(false);
   const [finalTranslateX, setFinalTranslateX] = useState(0);
-  const [audioReady, setAudioReady] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   const [showRoulette, setShowRoulette] = useState(false);
   const spinRequestedRef = useRef(false);
-  const isReady = audioReady && imagesReady;
+  const isReady = imagesReady;
   const containerRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const blobUrlRef = useRef<string | null>(null);
+  const [playSound] = useSound("/case-opening-sound.wav", { html5: true });
   
   const ITEM_WIDTH = 120; // Ancho fijo por item
   const TOTAL_ITEMS = 50;
   const WINNING_INDEX = 45; // El item 45 es el ganador
 
-  useEffect(() => {
-    // 1. Pre-descargar el audio como blob URL: iOS/Android ignoran preload="auto",
-    //    con blob el archivo queda en memoria y la reproducción es instantánea.
-    fetch('/case-opening-sound.wav')
-      .then(r => r.blob())
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        blobUrlRef.current = url;
-        if (audioRef.current) {
-          audioRef.current.src = url;
-          audioRef.current.load();
-        }
-        setAudioReady(true);
-      })
-      .catch(() => setAudioReady(true));
 
-    // 2. Desbloquear el audio en el primer toque: iOS Safari exige que el primer
-    //    play() ocurra dentro de un gesto del usuario.
-    const unlock = () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.play().then(() => {
-        audio.pause();
-        audio.currentTime = 0;
-      }).catch(() => {});
-    };
-
-    document.addEventListener('touchstart', unlock, { once: true, passive: true });
-
-    return () => {
-      document.removeEventListener('touchstart', unlock);
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     async function fetchSkins() {
@@ -156,11 +122,7 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const startSpin = () => {
     if (isSpinning || hasFinished) return;
 
-    // Audio síncrono en el gesto del usuario (requisito iOS/Android)
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(console.error);
-    }
+    playSound();
 
     // Mostrar ruleta — el useEffect arranca la animación tras el montaje del DOM
     spinRequestedRef.current = true;
@@ -205,7 +167,6 @@ export default function Roulette({ onFinish }: RouletteProps) {
   if (!isReady) {
     return (
       <div className="w-full flex flex-col items-center gap-4 py-16">
-        <audio ref={audioRef} preload="auto" />
         <div className="relative w-14 h-14">
           <div className="absolute inset-0 rounded-full border-4 border-zinc-700" />
           <div className="absolute inset-0 rounded-full border-4 border-t-csgo-gold border-r-transparent border-b-transparent border-l-transparent animate-spin" />
@@ -219,7 +180,6 @@ export default function Roulette({ onFinish }: RouletteProps) {
 
   return (
     <div className="w-full flex flex-col items-center gap-12">
-      <audio ref={audioRef} preload="auto" />
 
       {/* Vista inicial: imagen de la caja */}
       {!showRoulette && (
