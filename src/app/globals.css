@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --background: #18181b;
+  --foreground: #f4f4f5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-csgo-blue: #4b69ff;
+  --color-csgo-purple: #8847ff;
+  --color-csgo-pink: #d32ce6;
+  --color-csgo-red: #eb4b4b;
+  --color-csgo-gold: #ffd700;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #18181b;
+    --foreground: #f4f4f5;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
