@@ -52,6 +52,7 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const [audioReady, setAudioReady] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   const [showRoulette, setShowRoulette] = useState(false);
+  const spinRequestedRef = useRef(false);
   const isReady = audioReady && imagesReady;
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -155,36 +156,56 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const startSpin = () => {
     if (isSpinning || hasFinished) return;
 
-    setShowRoulette(true);
-
-    // Reproducir audio de forma síncrona dentro del gesto del usuario
-    // (en iOS/Android cualquier await antes de play() rompe el contexto de gesto)
+    // Audio síncrono en el gesto del usuario (requisito iOS/Android)
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(console.error);
     }
-    
-    // Obtenemos el ancho exacto del contenedor, no de la ventana, para que la línea central cuadre
-    const containerWidth = containerRef.current?.parentElement?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 400);
+
+    // Mostrar ruleta — el useEffect arranca la animación tras el montaje del DOM
+    spinRequestedRef.current = true;
+    setShowRoulette(true);
+  };
+
+  // Arranca la animación DESPUÉS de que el DOM de la ruleta esté montado.
+  // Depende solo de showRoulette (cambia una sola vez: false → true),
+  // así el cleanup nunca cancela el timer prematuramente.
+  useEffect(() => {
+    if (!showRoulette || !spinRequestedRef.current) return;
+    spinRequestedRef.current = false;
+
+    const containerWidth =
+      containerRef.current?.parentElement?.clientWidth ??
+      (typeof window !== "undefined" ? window.innerWidth : 400);
     const centerOffset = containerWidth / 2;
-    
-    // Eliminamos el offset aleatorio (fijado a 0) para asegurar que caiga EXACTAMENTE en el medio del item dorado
-    const randomOffset = 0; 
-    const calculatedTranslateX = -(WINNING_INDEX * ITEM_WIDTH) + centerOffset - (ITEM_WIDTH / 2) + randomOffset;
-    
+    const calculatedTranslateX =
+      -(WINNING_INDEX * ITEM_WIDTH) + centerOffset - ITEM_WIDTH / 2;
+
     setFinalTranslateX(calculatedTranslateX);
-    setIsSpinning(true);
-    
-    setTimeout(() => {
+
+    // Dos frames: garantiza que el navegador pinte posición 0 antes de la transición
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsSpinning(true);
+      });
+    });
+
+    const timer = setTimeout(() => {
       setIsSpinning(false);
       setHasFinished(true);
       onFinish();
-    }, 6000); // 6s exactos
-  };
+    }, 6100);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [showRoulette]);
 
   if (!isReady) {
     return (
       <div className="w-full flex flex-col items-center gap-4 py-16">
+        <audio ref={audioRef} preload="auto" />
         <div className="relative w-14 h-14">
           <div className="absolute inset-0 rounded-full border-4 border-zinc-700" />
           <div className="absolute inset-0 rounded-full border-4 border-t-csgo-gold border-r-transparent border-b-transparent border-l-transparent animate-spin" />
