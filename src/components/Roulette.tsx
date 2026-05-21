@@ -51,6 +51,7 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const [finalTranslateX, setFinalTranslateX] = useState(0);
   const [audioReady, setAudioReady] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
+  const [showRoulette, setShowRoulette] = useState(false);
   const isReady = audioReady && imagesReady;
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -154,6 +155,8 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const startSpin = () => {
     if (isSpinning || hasFinished) return;
 
+    setShowRoulette(true);
+
     // Reproducir audio de forma síncrona dentro del gesto del usuario
     // (en iOS/Android cualquier await antes de play() rompe el contexto de gesto)
     if (audioRef.current) {
@@ -195,8 +198,37 @@ export default function Roulette({ onFinish }: RouletteProps) {
 
   return (
     <div className="w-full flex flex-col items-center gap-12">
-      <audio ref={audioRef} src="/case-opening-sound.wav" preload="auto" />
-      {/* Contenedor de la ruleta */}
+      <audio ref={audioRef} preload="auto" />
+
+      {/* Vista inicial: imagen de la caja */}
+      {!showRoulette && (
+        <div className="flex flex-col items-center gap-8">
+          <button
+            onClick={startSpin}
+            className="relative group focus:outline-none"
+            aria-label="Abrir caja"
+          >
+            <div className="absolute inset-0 rounded-full bg-csgo-gold/20 blur-3xl scale-75 group-hover:bg-csgo-gold/35 group-hover:scale-100 transition-all duration-300" />
+            <Image
+              src="/case.png"
+              alt="Caja de Misión Secreta"
+              width={280}
+              height={280}
+              className="relative object-contain drop-shadow-2xl group-hover:scale-105 group-active:scale-95 transition-transform duration-200"
+              priority
+            />
+          </button>
+          <button
+            onClick={startSpin}
+            className="px-12 py-3 bg-gradient-to-b from-zinc-700 to-zinc-800 hover:from-zinc-600 hover:to-zinc-700 text-white font-bold uppercase tracking-widest text-sm transition-all border border-zinc-600 border-b-4 border-b-zinc-900 rounded shadow-lg active:border-b active:translate-y-[3px]"
+          >
+            Abrir caja
+          </button>
+        </div>
+      )}
+
+      {/* Contenedor de la ruleta (visible solo tras el click) */}
+      {showRoulette && <>
       <div className="relative w-full h-[180px] bg-zinc-950/80 border-y-2 border-zinc-800 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] overflow-hidden">
         
         {/* Línea central (Puntero) */}
@@ -252,6 +284,7 @@ export default function Roulette({ onFinish }: RouletteProps) {
       >
         {isSpinning ? 'Abriendo...' : 'Abrir caja'}
       </button>
+      </>}
     </div>
   );
 }
