@@ -20,12 +20,12 @@ export default function Home() {
   }, []);
 
   const handleFinish = () => {
+    setKeys(0);
     setIsModalOpen(true);
   };
 
   const handleAccept = () => {
     alert("¡RUSH B(ODA) CONFIRMADO! 🔥");
-    setKeys(0);
     setIsModalOpen(false);
   };
 
@@ -42,21 +42,21 @@ export default function Home() {
           </h1>
         </div>
         <div className="text-sm font-bold text-zinc{keys}400 bg-zinc-900 px-4 py-1 rounded border border-zinc-800">
-          Llaves: <span className="text-csgo-gold">1</span>
+          Llaves: <span className="text-csgo-gold">{keys}</span>
         </div>
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full">
         <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-8 px-4">
           <div className="text-center space-y-2 mb-8 drop-shadow-2xl">
+            <p className="text-csgo-gold font-bold text-lg">
+              Bienvenido {userName}
+            </p>
             <h2 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-widest">
               Caja de Misión Secreta
             </h2>
             <p className="text-zinc-400 text-sm md:text-base">
               Contiene una sorpresa garantizada.
-            </p>
-            <p className="text-csgo-gold font-bold text-lg mt-2">
-              ¡Hola {userName}!
             </p>
           </div>
           <Roulette onFinish={handleFinish} />

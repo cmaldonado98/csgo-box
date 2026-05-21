@@ -51,30 +51,12 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const [finalTranslateX, setFinalTranslateX] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioBufferRef = useRef<AudioBuffer | null>(null);
   
   const ITEM_WIDTH = 120; // Ancho fijo por item
   const TOTAL_ITEMS = 50;
   const WINNING_INDEX = 45; // El item 45 es el ganador
 
   useEffect(() => {
-    // Inicializar Web Audio API para latencia cero en celulares
-    const initAudio = async () => {
-      try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContext && !audioContextRef.current) {
-          audioContextRef.current = new AudioContext();
-          const response = await fetch('/case-opening-sound.wav');
-          const arrayBuffer = await response.arrayBuffer();
-          const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-          audioBufferRef.current = audioBuffer;
-        }
-      } catch (error) {
-        console.error("Error loading web audio API:", error);
-      }
-    };
-    initAudio();
 
     async function fetchSkins() {
       try {
@@ -116,30 +98,14 @@ export default function Roulette({ onFinish }: RouletteProps) {
     fetchSkins();
   }, []);
 
-  const startSpin = async () => {
+  const startSpin = () => {
     if (isSpinning || hasFinished) return;
-    
-    // Reproducir audio sin retraso (priorizando Web Audio API para celulares)
-    try {
-      if (audioContextRef.current && audioBufferRef.current) {
-        if (audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume();
-        }
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBufferRef.current;
-        source.connect(audioContextRef.current.destination);
-        source.start(0);
-      } else if (audioRef.current) {
-        // Fallback para navegadores antiguos
-        audioRef.current.currentTime = 0;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-      console.error("Audio playback error:", error);
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(console.error);
-      }
+
+    // Reproducir audio de forma síncrona dentro del gesto del usuario
+    // (en iOS/Android cualquier await antes de play() rompe el contexto de gesto)
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(console.error);
     }
     
     // Obtenemos el ancho exacto del contenedor, no de la ventana, para que la línea central cuadre
