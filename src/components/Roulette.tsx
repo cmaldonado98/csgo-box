@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import useSound from "use-sound";
 
 interface Skin {
   id: string;
@@ -55,7 +54,12 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const spinRequestedRef = useRef(false);
   const isReady = imagesReady;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [playSound] = useSound("/case-opening-sound.wav", { html5: true });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Inicializar el audio una sola vez para no agotar el pool de HTML5
+    audioRef.current = new window.Audio("/case-opening-sound.wav");
+  }, []);
   
   const ITEM_WIDTH = 120; // Ancho fijo por item
   const TOTAL_ITEMS = 50;
@@ -122,7 +126,10 @@ export default function Roulette({ onFinish }: RouletteProps) {
   const startSpin = () => {
     if (isSpinning || hasFinished) return;
 
-    playSound();
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+    }
 
     // Mostrar ruleta — el useEffect arranca la animación tras el montaje del DOM
     spinRequestedRef.current = true;
@@ -191,7 +198,7 @@ export default function Roulette({ onFinish }: RouletteProps) {
           >
             <div className="absolute inset-0 rounded-full bg-csgo-gold/20 blur-3xl scale-75 group-hover:bg-csgo-gold/35 group-hover:scale-100 transition-all duration-300" />
             <Image
-              src="/case.png"
+              src="/case-crew.png"
               alt="Caja de Misión Secreta"
               width={280}
               height={280}
