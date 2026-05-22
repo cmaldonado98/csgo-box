@@ -44,7 +44,7 @@ export default function Modal({ isOpen, onAccept, userName }: ModalProps) {
                   <span className="text-csgo-gold">Caballero de Honor!</span>
                 </h3>
                 <p className="text-zinc-300 text-sm leading-relaxed">
-                  {userName}, se viene el día más importante y necesito a la crew para la misión en Mexicali. ¿Aceptas la misión para el día de mi boda?
+                  {userName}, se viene el día más importante y necesito a la crew para esta misión en Mexicali. ¿Aceptas la misión para el día de mi boda?
                 </p>
               </motion.div>
 
